@@ -1,11 +1,9 @@
-/** \file shapemotion.c
- *  \brief This is a simple shape motion demo.
- *  This demo creates two layers containing shapes.
- *  One layer contains a rectangle and the other a circle.
- *  While the CPU is running the green LED is on, and
- *  when the screen does not need to be redrawn the CPU
- *  is turned off along with the green LED.
- */  
+/*
+ *Carlos Tafoya
+ *Project 3
+ *November 29, 2016
+ *Description: A simple ping pong game for two players.
+*/
 #include <msp430.h>
 #include <libTimer.h>
 #include <lcdutils.h>
@@ -23,27 +21,27 @@
 
 
 static short startTime;
-static int score;
+
+/*States for when ball scores, hits paddle, ad hits wall.
+ *
+ */
+static int score;                         
 static int hit;
 static int wall;
 
+/*Keeps score in ints and writes them using char[]
+ *
+ */
 static char score1[1];
 static u_int sc1;
 static char score2[1];
 static u_int sc2;
 
-/**Rectangle Layer
- *
+
+
+/*Shapes used in game and respective layers.
  *
  */
-typedef struct RectLayer_s {
-  AbRect *abRect;
-  Vec2 pos, posLast, posNext; /* initially just set pos */
-  u_int color;
-  struct RectLayer_s *next;
-} RectLayer;
-
-
 AbRect player = {abRectGetBounds, abRectCheck, 13,3};
 AbRect smallplayer = {abRectGetBounds, abRectCheck, 7,3};
 AbRect ball = {abRectGetBounds, abRectCheck, 7,7};
@@ -68,8 +66,8 @@ Layer fieldLineLayer = {		/* playing field as a layer */
 
 Layer fieldLayer = {		/* playing field as a layer */
   (AbShape *) &fieldOutline,
-  {screenWidth/2, screenHeight/2},/**< center */
-  {0,0}, {0,0},				    /* last & next pos */
+  {screenWidth/2, screenHeight/2},
+  {0,0}, {0,0},				   
   COLOR_BLACK,
    &fieldLineLayer
 };
@@ -92,8 +90,8 @@ Layer player1 = {                //BLUE PLAYER
 
 Layer layer0 = {		/**< Layer with an orange circle */
   (AbShape *)&circle7,
-  {(screenWidth/2), (screenHeight/2)}, /**<  */
-  {0,0}, {0,0},				    /* last & next pos */
+  {(screenWidth/2), (screenHeight/2)},
+  {0,0}, {0,0},				   
   COLOR_ORANGE,
   &player1,
 };
@@ -108,18 +106,15 @@ typedef struct MovLayer_s {
   struct MovLayer_s *next;
 } MovLayer;
 
-typedef struct RectMovLayer_s {
-  RectLayer *layer;
-  Vec2 velocity;
-  struct RectMovLayer_s *next;
-} RectMovLayer;
-
 /* initial value of {0,0} will be overwritten */ 
-MovLayer ml2 = { &player2, {0,0}, 0};
+MovLayer ml2 = { &player2, {0,0}, 0};                  
 MovLayer ml1 = { &player1, {0,0}, &ml2}; 
 
-MovLayer ml0 = { &layer0, {4,4}, 0 }; //movelayer for ball
+MovLayer ml0 = { &layer0, {4,4}, 0 };                  //movelayer for ball
 
+/*This method was provided in demo
+ *
+ */
 movLayerDraw(MovLayer *movLayers, Layer *layers)
 {
   int row, col;
@@ -157,8 +152,11 @@ movLayerDraw(MovLayer *movLayers, Layer *layers)
   } // for moving layer being updated
 }	  
 
-
-
+/*Uses MovLayers to advance the ball within a field. Also checks when
+ *the ball has been hit by a paddle and updates its movement according to
+ *its interaction with that paddle.
+ *
+ */
 void mlAdvanceBall(MovLayer *ml, Region *fence, MovLayer *paddles)
 {
   MovLayer *p1 = paddles;
@@ -177,30 +175,30 @@ void mlAdvanceBall(MovLayer *ml, Region *fence, MovLayer *paddles)
     abShapeGetBounds(ml->layer->abShape, &newPos, &shapeBoundary);
 
     for (axis = 0; axis < 2; axis ++) {
-      if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||
+      if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) ||                    /*Ball hits top or bottom wall*/
 	  (shapeBoundary.botRight.axes[axis] > fence->botRight.axes[axis])
 	  ) {
 	int velocity = ml->velocity.axes[axis] = -ml->velocity.axes[axis];
 	newPos.axes[axis] += (2*velocity);
 	 startTime = spTimer;
 	 wall = 1;
-	 if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) & axis == 1)
+	 if ((shapeBoundary.topLeft.axes[axis] < fence->topLeft.axes[axis]) & axis == 1)       /*Ball hits wall behind red player*/
 	  {
 	    sc1++;
 	    startTime = spTimer;
 	    score = 1;
-	    //p1->layer->abShape = &smallplayer;
+	    //p1->layer->abShape = &smallplayer;                                               /*Uncommenting will change sizes of paddles when player scores*/
 	    //p2->layer->abShape = &player;
 	  }
-       	if ((shapeBoundary.topLeft.axes[axis] > fence->topLeft.axes[axis]) & axis == 1)
+       	if ((shapeBoundary.topLeft.axes[axis] > fence->topLeft.axes[axis]) & axis == 1)        /*Ball hits wall behind blue player*/  
 	  {
 	    sc2++;
 	    startTime = spTimer;
 	    score = 1;
-	    // p2->layer->abShape = &smallplayer;
+	    // p2->layer->abShape = &smallplayer;                                              /*Uncommenting will change sizes of paddles when player scores*/
 	    //p1->layer->abShape = &player;
 	  }
-	if (sc1 > 8 ){
+	if (sc1 > 8 ){                                                                       
 	  drawString5x7(screenWidth/2-20,screenHeight/2, "P1 WINS", COLOR_BLUE, COLOR_WHITE);
 	   or_sr(0x10);
 	}
@@ -213,9 +211,9 @@ void mlAdvanceBall(MovLayer *ml, Region *fence, MovLayer *paddles)
 	score2[0] = '0'+ sc2;
   
       }	/**< if outside of fence */
-
     } /**< for axis */
 
+    /*Ball hits red paddle*/
     if ((shapeBoundary.topLeft.axes[1] < p2Boundary.botRight.axes[1]) &&
 	((shapeBoundary.botRight.axes[0] > p2Boundary.topLeft.axes[0]) && (shapeBoundary.topLeft.axes[0] < p2Boundary.botRight.axes[0])))
       {
@@ -231,6 +229,7 @@ void mlAdvanceBall(MovLayer *ml, Region *fence, MovLayer *paddles)
 	hit = 1;
       }
 
+    /*Ball hits blue paddle*/
      if ((shapeBoundary.botRight.axes[1] > p1Boundary.topLeft.axes[1]) &&
 	((shapeBoundary.botRight.axes[0] > p1Boundary.topLeft.axes[0]) && (shapeBoundary.topLeft.axes[0] < p1Boundary.botRight.axes[0])))
       {
@@ -251,10 +250,9 @@ void mlAdvanceBall(MovLayer *ml, Region *fence, MovLayer *paddles)
   // } /**< for ml */
 }
 
-/** Advances a moving shape within a fence
+/** Advances a moving shape within a fence, in this case paddles.
+ *  Code provided in demo.
  *  
- *  \param ml The moving shape to be advanced
- *  \param fence The region which will serve as a boundary for ml
  */
 void mlAdvance(MovLayer *ml, Region *fence)
 {
@@ -280,11 +278,15 @@ void mlAdvance(MovLayer *ml, Region *fence)
   } /**< for ml */
 }
 
+/*Uses input from MSP430 switches to move the paddles.
+ *
+ */
 void movePaddle(u_int switches, MovLayer *ml)
 {
   MovLayer *p1 = ml;
   MovLayer *p2 = ml->next;
 
+  /*Blue Paddle*/
   if (!(switches & SW3)){
       	p1->velocity.axes[0] = -3;
     }
@@ -294,7 +296,8 @@ void movePaddle(u_int switches, MovLayer *ml)
   else{
     p1->velocity.axes[0] = 0;
   }
-  
+
+  /*Red Paddle*/
   if (!(switches & SW1)){
       	p2->velocity.axes[0] = -3;
     }
@@ -307,7 +310,7 @@ void movePaddle(u_int switches, MovLayer *ml)
   }
 
 
-u_int bgColor = COLOR_WHITE;     /**< The background color */
+u_int bgColor = COLOR_WHITE;    /**< The background color */
 int redrawScreen = 1;           /**< Boolean for whether screen needs to be redrawn */
 
 Region fieldFence;		/**< fence around playing field  */
@@ -352,14 +355,14 @@ void main()
     redrawScreen = 0;
     drawString5x7(screenWidth-10,screenHeight/2+4, score1, COLOR_BLUE, COLOR_WHITE);
     drawString5x7(4,screenHeight/2-10, score2, COLOR_RED, COLOR_WHITE);
-    //  movLayerDraw(&mlf, &fieldLayer);
+    
     movLayerDraw(&ml0, &layer0);
     movLayerDraw(&ml1, &layer0);  
   }
 }
   
 
-/** Watchdog timer interrupt handler. 15 interrupts/sec */
+/** Watchdog timer interrupt handler */
 void wdt_c_handler()
 {
   static short count = 0;

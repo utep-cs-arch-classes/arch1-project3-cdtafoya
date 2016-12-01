@@ -1,8 +1,8 @@
 /*
-Carlos Tafoya
-Project 2
-)ctober 30, 2016
-Description: Initiates buzzer and changes tone being played.
+ *Carlos Tafoya
+ *Project 3
+ *November 29, 2016
+ *Description: Added short spTimer to keep track of time, for use with speaker.
 */
 #include <msp430.h>
 #include "buzzer.h"	

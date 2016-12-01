@@ -16,4 +16,4 @@ load: shapemotion.elf
 	mspdebug rf2500 "prog $^"
 
 clean:
-	rm -f *.o *.elf
+	rm -f *.o *.elf *~
